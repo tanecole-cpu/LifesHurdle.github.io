@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Lifes Hurdles</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      text-align: center;
+      color: white;
+      font-family: Arial;
+    }
+    canvas {
+      background: black;
+      display: block;
+      margin: auto;
+      width: 100%;      /* scale canvas width */
+      max-width: 800px; /* max original width */
+      height: auto;     /* maintain aspect ratio */
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+const SCREEN_WIDTH = 800;
+const SCREEN_HEIGHT = 600;
+
+// Colours
+const yellow = "rgb(250,190,3)";
+const green = "rgb(19,250,3)";
+const red = "rgb(255,0,0)";
+const white = "rgb(255,255,255)";
+
+// Player & environment
+let player = { x: 300, y: 250, width: 50, height: 50 };
+let ground = { x: 0, y: 550, width: 800, height: 50 };
+let roof = { x: 0, y: 0, width: 800, height: 100 };
+
+let pipePositions = [400, 70, 280];
+let pipeBottom = { x: 1000, y: randomPipe(), width: 70, height: 300 };
+let pipe2 = { x: 1500, y: randomPipe(), width: 70, height: 300 };
+
+let score = 0;
+let highScore = 0;
+let pipeSpeed = -3;
+let fallSpeed = 0;
+
+let gameState = false;
+let gameOver = false;
+
+// Utility functions
+function randomPipe() {
+  return pipePositions[Math.floor(Math.random() * pipePositions.length)];
+}
+
+function rectCollision(a, b) {
+  return (
+    a.x < b.x + b.width &&
+    a.x + a.width > b.x &&
+    a.y < b.y + b.height &&
+    a.y + a.height > b.y
+  );
+}
+
+// Event handlers
+document.addEventListener("mousedown", () => {
+  if (!gameOver) {
+    if (!gameState) gameState = true;
+    fallSpeed = -10;
+  }
+});
+
+document.addEventListener("touchstart", (e) => {
+  e.preventDefault();
+  if (!gameOver) {
+    if (!gameState) gameState = true;
+    fallSpeed = -10;
+  }
+}, { passive: false });
+
+document.addEventListener("keydown", (e) => {
+  if (gameOver && e.key === "r") resetGame();
+});
+
+// Reset game
+function resetGame() {
+  player.y = 250;
+  pipeBottom.x = 1000;
+  pipeBottom.y = randomPipe();
+  pipe2.x = 1500;
+  pipe2.y = randomPipe();
+  score = 0;
+  fallSpeed = 0;
+  gameState = false;
+  gameOver = false;
+}
+
+// Game update
+function update() {
+  if (!gameState || gameOver) return; // 🔹 Freeze on Game Over
+
+  fallSpeed += 0.5;
+  player.y += fallSpeed;
+
+  pipeBottom.x += pipeSpeed;
+  pipe2.x += pipeSpeed;
+
+  if (pipeBottom.x + pipeBottom.width < 0) {
+    pipeBottom.x = SCREEN_WIDTH;
+    pipeBottom.y = randomPipe();
+    score++;
+  }
+  if (pipe2.x + pipe2.width < 0) {
+    pipe2.x = SCREEN_WIDTH;
+    pipe2.y = randomPipe();
+    score++;
+  }
+
+  if (rectCollision(player, ground)) {
+    player.y = ground.y - player.height;
+    fallSpeed = 0;
+  }
+  if (rectCollision(player, pipeBottom) || rectCollision(player, roof)) {
+    gameState = false;
+    gameOver = true;
+  }
+
+  if (score > highScore) highScore = score;
+}
+
+// Drawing functions
+function drawRect(obj, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+}
+
+function drawText(text, x, y, color, fontSize = 40) {
+  ctx.fillStyle = color;
+  ctx.font = fontSize + "px Arial";
+  ctx.fillText(text, x, y);
+}
+
+// Render frame
+function draw() {
+  ctx.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+  drawRect(player, yellow);
+  drawRect(ground, green);
+  drawRect(pipeBottom, green);
+  drawRect(pipe2, green);
+  drawRect(roof, green);
+
+  drawText("Score: " + score, 20, 40, white);
+  drawText("High Score: " + highScore, 20, 80, red);
+
+  if (gameOver) {
+    drawText("GAME OVER", 250, 300, red);
+    drawText("Press R to Restart", 200, 350, white, 28);
+  }
+
+  if (!gameState && !gameOver) {
+    drawText("Welcome to Lifes Hurdles", 130, 250, red, 36);
+    drawText("Click or Tap to Play", 260, 300, red, 28);
+
+    // Custom message about life's hurdles
+    drawText(
+      "Each jump represents one of life's hurdles:", 
+      50, 370, white, 20
+    );
+    drawText(
+      "For me: hobbies, social time, and making decisions", 
+      30, 400, white, 20
+    );
+    drawText(
+      "By Tane Cole", 
+      320, 430, white, 20
+    );
+  }
+}
+
+// Game loop
+function gameLoop() {
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+
+</body>
+</html>
